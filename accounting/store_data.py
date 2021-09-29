@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from currency_converter import CurrencyConverter
-from typing import Dict
+from read_data import read_excel_sheet
 
 
 def get_currency_rate(val, currency) -> float:
@@ -9,11 +9,18 @@ def get_currency_rate(val, currency) -> float:
     return (_c.convert(val, currency, "ILS"))
 
 
-@dataclass(frozen=True)
-class Description:
-    '''Class stores the description of the transaction'''
-    transaction_index: int = 0
-    description: str = ""
+def extract_rows(dataframe) -> list():
+    '''Read dataframe rows to create transaction list'''
+    transactions_list = []
+    head = dataframe.columns
+    for _, row in dataframe.iterrows():
+        transaction = Transaction()
+        transaction.set_description(row[0:2])
+        transaction.set_accounts(head, row[2:])
+        transactions_list.append(transaction)
+
+    return transactions_list
+
 
 @dataclass(frozen=True)
 class Account:
@@ -46,16 +53,36 @@ class Transaction:
         return self.transaction_data
 
 
-@dataclass(frozen=True)
+@dataclass
 class Month:
-    pass
+    month: str
+    xlsx_path: str
+    _transactions_list: list = field(init=False)
+    _account_begining: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self._dataframe = read_excel_sheet(self.xlsx_path, self.month)
+        self.set_month_transactions()
+        self.set_accounts_begining_value()
+
+    def set_month_transactions(self):
+        self._transactions_list = extract_rows(self._dataframe)
+    
+    def get_month_transactions(self):
+        return self._transactions_list
+
+    def set_accounts_begining_value(self):
+        for col in self._dataframe.head(0):
+            accont_type, account, value, _ = col
+            if accont_type in ['Assets', 'Liabilities'] \
+                 and isinstance(value, float):
+                if '$' in account: value = get_currency_rate(value, 'USD')
+                self._account_begining[account] = value
+
+    def get_accounts_begining_value(self):
+        return self._account_begining
+
+        
 
 
 
-
-# @dataclass(frozen=True)
-# class BeginBalance(Assets, Liabilities):
-#     '''Class stores all the starting balance details of all accounts'''
-
-#     def get_attributes_list(self):
-#         return self.__dict__.keys()
