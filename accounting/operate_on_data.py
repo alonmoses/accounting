@@ -27,20 +27,37 @@ def calc_transaction_net_worth(transaction) -> float:
 def calc_total_expenses(transactions_list) -> float:
     expenses_list = []
     for transaction in transactions_list:
-        expenses_list.append(calc_transaction_net_worth(transaction))
+        transaction_net_worth = calc_transaction_net_worth(transaction)
+        if transaction_net_worth < 0:
+           expenses_list.append(transaction_net_worth)
 
     return sum(expenses_list)
 
 def calc_account_expense(transactions_list, account_name) -> float:
-    total_expense = 0
+    expenses = {'total_expense': 0}
     for transaction in transactions_list:
         transaction_data = transaction.get_transaction_data
         try:
-            total_expense += transaction_data[account_name].account_value
+            transaction_net_worth = calc_transaction_net_worth(transaction)
+            account_value = transaction_data[account_name].account_value
+            if transaction_net_worth < 0:
+                expense_type =  transaction_data['Description'].split(':')[0]
+                expenses[expense_type] = expenses[expense_type] + account_value \
+                    if expense_type in expenses else account_value
+                expenses['total_expense'] += account_value
         except:
             raise(KeyError(f"{account_name} is not a valid account"))
 
-    return total_expense
+    return expenses
+
+def calc_total_income(transactions_list):
+    total_income = 0
+    for transaction in transactions_list:
+        transaction_net_worth = calc_transaction_net_worth(transaction)
+        if transaction_net_worth > 0:
+            total_income += transaction_net_worth
+        
+    return total_income
 
 def calc_begining_balance(accounts_begining_dict) -> float:
     begining_balance = sum(val for _,val in accounts_begining_dict.items())

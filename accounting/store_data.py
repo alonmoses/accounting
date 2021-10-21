@@ -58,6 +58,7 @@ class Month:
     month: str
     xlsx_path: str
     _transactions_list: list = field(init=False)
+    _accounts_list: list = field(default_factory=list)
     _account_begining: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -75,12 +76,16 @@ class Month:
         for col in self._dataframe.head(0):
             accont_type, account, value, _ = col
             if accont_type in ['Assets', 'Liabilities'] \
-                 and isinstance(value, float):
+                 and value != '-': #isinstance(value, float):
                 if '$' in account: value = get_currency_rate(value, 'USD')
                 self._account_begining[account] = value
+                self._accounts_list.append(account)
 
     def get_accounts_begining_value(self):
         return self._account_begining
+
+    def get_accounts_list(self):
+        return self._accounts_list
 
         
 
